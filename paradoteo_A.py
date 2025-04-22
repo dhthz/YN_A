@@ -13,7 +13,7 @@ from keras.src.optimizers import SGD
 # TODO Na ftiaksw to plot kai to convergance kai meta na allaksw to save
 
 
-def plot_convergence(histories, loss_fn, input_activation_fn, hidden_units):
+def plot_convergence(histories, loss_fn, input_activation_fn, output_activation_fn, hidden_units):
     # Calculate average losses
     min_epochs = min(len(h.history['loss']) for h in histories)
     train_losses = np.array([h.history['loss'][:min_epochs]
@@ -25,20 +25,24 @@ def plot_convergence(histories, loss_fn, input_activation_fn, hidden_units):
     avg_val_loss = np.mean(val_losses, axis=0)
 
     # Find convergence
-    window = 5
-    min_epochs = 20
-    rel_threshold = 0.005
-
     def find_convergence(losses):
+        window = 5
+        min_epochs = 20
+        rel_threshold = 0.005
+
         if len(losses) < min_epochs + window:
             return len(losses) - 1
 
+        # Add minimum loss check
+        min_loss_idx = np.argmin(losses[min_epochs:]) + min_epochs
+
         for i in range(min_epochs, len(losses) - window):
-            # Check if loss has stabilized
-            window_mean = np.mean(losses[i:i+window])
-            window_std = np.std(losses[i:i+window])
-            if window_std/window_mean < rel_threshold:
+            window_vals = losses[i:i+window]
+            rel_change = np.std(window_vals) / np.mean(window_vals)
+
+            if rel_change < rel_threshold and i >= min_loss_idx:
                 return i
+
         return len(losses) - 1
 
     train_epoch = find_convergence(avg_train_loss)
@@ -53,12 +57,12 @@ def plot_convergence(histories, loss_fn, input_activation_fn, hidden_units):
     plt.axvline(x=val_epoch, color='r', linestyle='--',
                 label='Val Convergence')
     plt.title(
-        f"Loss: {loss_fn}, Activation: {input_activation_fn}, Neurons: {hidden_units}")
+        f"Loss: {loss_fn}, Input Activation: {input_activation_fn}, Output Activation: {output_activation_fn}, Neurons: {hidden_units}")
     plt.xlabel("Epochs")
     plt.ylabel("Loss")
     plt.legend()
     plt.savefig(
-        f"plots/{loss_fn}_{input_activation_fn}_{hidden_units}_neurons.png")
+        f"plots/{loss_fn}_{input_activation_fn}_{hidden_units}_neurons_{output_activation_fn}.png")
     plt.close()
 
     return train_epoch, val_epoch
@@ -129,9 +133,9 @@ def main():
         # Hyperparameters
         I = dataForTargetColumn.shape[1]
         hidden_layer_configs = [I//2, 2*I//3, I, 2*I]
-        input_activation_functions = ['relu', 'tanh', 'silu']
+        input_activation_functions = ['tanh', 'elu', 'relu', 'silu']
         loss_functions = ['binary_crossentropy', 'mean_squared_error']
-        output_activation_fns = ['sigmoid', 'softmax', 'linear']
+        output_activation_fns = ['sigmoid']
 
         # Store results
         results = {}
@@ -208,7 +212,7 @@ def main():
 
                         # Calculate averages
                         avg_train_loss, avg_val_loss = plot_convergence(
-                            histories, loss_fn, input_activation_fn, hidden_units)
+                            histories, loss_fn, input_activation_fn, output_activation_fn, hidden_units)
 
                         # Store configuration results
                         results[(loss_fn, input_activation_fn, hidden_units)] = {
