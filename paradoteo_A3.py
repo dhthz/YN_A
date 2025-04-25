@@ -9,10 +9,9 @@ from keras import Sequential
 from keras.src.layers import Dense, Input
 from keras.src.callbacks import EarlyStopping
 from keras.src.optimizers import SGD
-from keras.src.regularizers import L2
 
 
-def plot_convergence(histories, lr, momentum, l2_lambda):
+def plot_convergence(histories, lr, momentum):
     plt.figure(figsize=(10, 6))
 
     min_epochs = min(len(h.history['loss']) for h in histories)
@@ -27,19 +26,18 @@ def plot_convergence(histories, lr, momentum, l2_lambda):
     plt.plot(avg_train_loss, label='Train Loss')
     plt.plot(avg_val_loss, label='Validation Loss')
     plt.title(
-        f'Average Loss Convergence (lr={lr}, m={momentum}), l2={l2_lambda}')
+        f'Average Loss Convergence (lr={lr}, m={momentum})')
     plt.xlabel('Epoch')
     plt.ylabel('Loss')
     plt.legend()
-    plt.savefig(f'plots/convergence_lr{lr}_m{momentum}_l2{l2_lambda}.png')
+    plt.savefig(f'plots/convergence_lr{lr}_m{momentum}.png')
     plt.close()
 
 
-def create_model(input_shape, hidden_units, learning_rate, momentum, l2_lambda):
+def create_model(input_shape, hidden_units, learning_rate, momentum):
     model = Sequential([
         Input(shape=(input_shape,)),
-        Dense(hidden_units, activation='elu',
-              kernel_regularizer=L2(l2_lambda)),
+        Dense(hidden_units, activation='elu'),
         Dense(1, activation='sigmoid')
     ])
 
@@ -116,9 +114,10 @@ def main():
 
         # Hyperparameters
         configs = [
-            {'lr': 0.05, 'm': 0.6, 'l2': 0.01},
-            {'lr': 0.05, 'm': 0.6, 'l2': 0.001},
-            {'lr': 0.05, 'm': 0.6, 'l2': 0.0001},
+            {'lr': 0.001, 'm': 0.2, },
+            {'lr': 0.001, 'm': 0.6, },
+            {'lr': 0.05, 'm': 0.6, },
+            {'lr': 0.1, 'm': 0.6, },
         ]
 
         hidden_units = 76
@@ -126,7 +125,7 @@ def main():
         results = {}
 
         for config in configs:
-            lr, m, l2_lambda = config['lr'], config['m'], config['l2']
+            lr, m, = config['lr'], config['m']
             print(f"\nTraining with lr={lr}, momentum={m}")
             # Initialize metrics storage
             fold_losses = []
@@ -152,7 +151,7 @@ def main():
                 y_val = y_val.reshape(-1, 1)
                 # Define model
                 model = create_model(
-                    dataForTargetColumn.shape[1], hidden_units, lr, m, l2_lambda)
+                    dataForTargetColumn.shape[1], hidden_units, lr, m)
                 # Compile and fit model
 
                 history = model.fit(
@@ -174,9 +173,9 @@ def main():
                 val_accuracies.append(val_metrics[1])
                 histories.append(history)
             # Plot convergence
-            plot_convergence(histories, lr, m, l2_lambda)
+            plot_convergence(histories, lr, m)
 
-            results[(lr, m, l2_lambda)] = {
+            results[(lr, m)] = {
                 'Train Accuracy': np.mean(fold_accuracies),
                 'Train Loss': np.mean(fold_losses),
                 'Train BCE': np.mean(fold_bces),
@@ -189,16 +188,15 @@ def main():
             {
                 'Learning Rate': lr,
                 'Momentum': m,
-                'L2': l2_lambda,
                 **metrics
             }
-            for (lr, m, l2_lambda), metrics in results.items()
+            for (lr, m), metrics in results.items()
         ])
 
         results_df = results_df.sort_values(
             by='Validation Accuracy', ascending=False)
         results_df.to_csv("A4.csv", index=False)
-        print("\n✅ Results saved to A4.csv")
+        print("\n✅ Results saved to A3.csv")
         print(results_df.head())
 
     except FileNotFoundError:
