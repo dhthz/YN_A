@@ -10,8 +10,6 @@ from keras.src.layers import Dense, Input
 from keras.src.callbacks import EarlyStopping
 from keras.src.optimizers import SGD
 
-# TODO Na ftiaksw to plot kai to convergance kai meta na allaksw to save
-
 
 def plot_convergence(histories, loss_fn, input_activation_fn, output_activation_fn, hidden_units):
     # Calculate average losses
@@ -69,9 +67,8 @@ def plot_convergence(histories, loss_fn, input_activation_fn, output_activation_
 
 
 def main():
-    # File paths and setup
     FILE = "alzheimers_disease_data.csv"
-    # os.environ['CUDA_VISIBLE_DEVICES'] = '-1'  # Disable GPU
+    # os.environ['CUDA_VISIBLE_DEVICES'] = '-1'  # If you have a GPU uncomment this
 
     # Create plots directory
     if not os.path.exists('plots'):
@@ -97,7 +94,7 @@ def main():
         df[columns_for_standardization] = scaler_standard.fit_transform(
             df[columns_for_standardization])
 
-        # One-hot encoding
+        # Apply One-hot encoding
         df["Ethnicity"] = df["Ethnicity"].astype("category")
         df["EducationLevel"] = df["EducationLevel"].astype("category")
         df = pd.get_dummies(df, columns=["Ethnicity"], prefix="Ethnicity")
@@ -123,7 +120,7 @@ def main():
             include=['float64', 'int64']).columns
         df[numeric_columns] = df[numeric_columns].astype('float32')
 
-        # Then proceed with numpy conversion
+        # Numpy conversion
         dataForTargetColumn = dataForTargetColumn.astype('float32')
         targetColumn = targetColumn.astype('float32')
 
